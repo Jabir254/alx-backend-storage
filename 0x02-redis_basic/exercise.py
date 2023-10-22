@@ -68,7 +68,7 @@ class Cache:
     @count_calls
     def store(self, data: Union[str, bytes, int, float]) -> str:
         '''takes a data argument and returns a string'''
-        rkey = str(uuid4())
+        rkey = str(uuid.uuid4())
         self._redis.set(rkey, data)
         return rkey
 
