@@ -7,46 +7,6 @@ import uuid
 from typing import Callable, Optional, Union
 
 
-class Cache:
-    def __init__(self):
-        self._redis = redis.Redis()
-        self._redis.flushdb()
-
-    def store(self, data: Union[str, bytes, int, float]) -> str:
-        # Generate a random key using uuid
-        random_key = str(uuid.uuid4())
-
-        # Store the data in Redis using the random key
-        if isinstance(data, (int, float)):
-            # If data is an int or float, store it as a string
-            data = str(data)
-        self._redis.set(random_key, data)
-
-        # Return the generated key
-        return random_key
-
-    def get(self, key: str, fn: Optional[Callable] = None) -> Union[str, bytes, int, float]:
-        '''convert the data back to the desired format'''
-        value = self._redis.get(key)
-        if fn:
-            value = fn(value)
-        return value
-
-    def get_str(self, key: str) -> str:
-        '''correct conversion function'''
-        value = self._redis.get(key)
-        return value.decode("utf-8")
-
-    def get_int(self, key: str) -> int:
-        '''parametrize Cache.get with correct conversion function'''
-        value = self._redis.get(key)
-        try:
-            value = int(value.decode("utf-8"))
-        except Exception:
-            value = 0
-        return value
-
-
 def count_calls(method: Callable) -> Callable:
     '''count how many times methods of Cache class are called'''
     key = method.__qualname__
@@ -94,3 +54,42 @@ def replay(fn: Callable):
         except Exception:
             outp = ""
         print("{}(*{}) -> {}".format(func_name, inp, outp))
+
+
+class Cache:
+    '''declares a Cache redis class'''
+
+    def __init__(self):
+        '''upon init to store an instance and flush'''
+        self._redis = redis.Redis(host='localhost', port=6379, db=0)
+        self._redis.flushdb()
+
+    @call_history
+    @count_calls
+    def store(self, data: Union[str, bytes, int, float]) -> str:
+        '''takes a data argument and returns a string'''
+        rkey = str(uuid4())
+        self._redis.set(rkey, data)
+        return rkey
+
+    def get(self, key: str,
+            fn: Optional[Callable] = None) -> Union[str, bytes, int, float]:
+        '''convert the data back to the desired format'''
+        value = self._redis.get(key)
+        if fn:
+            value = fn(value)
+        return value
+
+    def get_str(self, key: str) -> str:
+        '''parametrize Cache.get with correct conversion function'''
+        value = self._redis.get(key)
+        return value.decode("utf-8")
+
+    def get_int(self, key: str) -> int:
+        '''parametrize Cache.get with correct conversion function'''
+        value = self._redis.get(key)
+        try:
+            value = int(value.decode("utf-8"))
+        except Exception:
+            value = 0
+        return value
